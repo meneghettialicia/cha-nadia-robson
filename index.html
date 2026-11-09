@@ -363,6 +363,20 @@ footer .collage .c5{width:200px;margin-left:-40px;z-index:2;transform:rotate(3de
 .link-view.zoomlink{color:var(--gold)}
 .link-view.zoomlink:hover{color:var(--navy)}
 .note-links b{font-style:normal;color:var(--navy)}
+
+.addr{display:flex;align-items:center;gap:14px;max-width:560px;margin:18px auto 4px;padding:16px 18px;background:#FFFDF8;border:1.5px dashed var(--gold-2);border-radius:14px;text-align:left}
+.addr-ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--blue-soft);color:var(--navy);display:grid;place-items:center}
+.addr-ic svg{width:22px;height:22px}
+.addr-txt{flex:1;min-width:0}
+.addr-lbl{font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.addr-val{font-family:var(--serif);font-size:17px;color:var(--navy);line-height:1.4}
+.addr-copy{flex:none}
+.modal .addr{margin:8px 0 0;padding:12px 14px}
+.modal .addr-val{font-size:15.5px}
+.addr-hint{margin-top:14px}
+.msg-preview{overflow-wrap:anywhere}
+.modal .addr{flex-wrap:wrap}.modal .addr-copy{width:100%;padding:7px}
+@media (max-width:520px){ .addr{flex-wrap:wrap}.addr-copy{width:100%;padding:8px} }
 </style>
 </head>
 <body>
@@ -373,7 +387,9 @@ footer .collage .c5{width:200px;margin-left:-40px;z-index:2;transform:rotate(3de
 "use strict";
 
 /* Número de WhatsApp que recebe os pedidos (55 + DDD + número, só dígitos). Vazio = a pessoa escolhe o contato. */
-var WHATSAPP = "";
+var WHATSAPP = "5584933005495";
+var ADDRESS = "Rua Vereador José Evaristo, 293\nCentro - Rio Grande do Norte (RN)\nCEP 59805-000";
+var ADDR_BOX = function(){ return '<div class="addr"><div class="addr-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div><div class="addr-txt"><div class="addr-lbl">Endereço para entrega</div><div class="addr-val">'+esc(ADDRESS).replace(/\n/g,"<br>")+'</div></div><button class="btn-sm addr-copy" data-copyaddr>Copiar endereço</button></div>'; };
 var ZOOM_URL = "https://www.zoom.com.br/";
 function zoomSearch(q){ return "https://www.zoom.com.br/search?q=" + encodeURIComponent(q); }
 
@@ -732,7 +748,7 @@ function render(){
 
   + '<section class="section" id="presentes"><div class="wrap">'
   +   '<div class="sec-head"><h2>Lista de presentes</h2><span class="hand">a Pretinha e a Bolinha já aprovaram a cama, só falta o lençol</span></div>'
-  +   '<ol class="steps3">'+'<li><span class="n">1</span><span><b>Escolha</b> um presente da lista</span></li>'+'<li><span class="n">2</span><span>Toque em <b>Reservar presente</b> e escreva seu nome</span></li>'+'<li><span class="n">3</span><span><b>Envie</b> a mensagem pronta no WhatsApp</span></li>'+'</ol><p class="note-links">Cada presente tem o link da loja que escolhemos. Em <b>Ver em outras lojas</b> você encontra o mesmo produto em outros sites pelo Zoom, para comprar onde for melhor para você.</p>'+'<div class="toolbar sticky" role="group" aria-label="Filtrar presentes">'+tab("todos","Todos")+tab("cozinha","Cozinha")+tab("quarto","Quarto")+tab("banheiro","Banheiro")+tab("lavanderia","Lavanderia")+tab("disponiveis","Disponíveis")+'</div>'
+  +   '<ol class="steps3">'+'<li><span class="n">1</span><span><b>Escolha</b> um presente da lista</span></li>'+'<li><span class="n">2</span><span>Toque em <b>Reservar presente</b> e escreva seu nome</span></li>'+'<li><span class="n">3</span><span><b>Envie</b> a mensagem pronta no WhatsApp</span></li>'+'<li><span class="n">4</span><span>Compre e <b>envie para o endereço</b> abaixo</span></li>'+'</ol>'+ADDR_BOX()+'<p class="note-links">Cada presente tem o link da loja que escolhemos. Em <b>Ver em outras lojas</b> você encontra o mesmo produto em outros sites pelo Zoom, para comprar onde for melhor para você.</p>'+'<div class="toolbar sticky" role="group" aria-label="Filtrar presentes">'+tab("todos","Todos")+tab("cozinha","Cozinha")+tab("quarto","Quarto")+tab("banheiro","Banheiro")+tab("lavanderia","Lavanderia")+tab("disponiveis","Disponíveis")+'</div>'
   +   '<p class="progress">'+(res===0 ? 'Todos os presentes ainda estão disponíveis' : res+' de '+total+' presentes já foram reservados')+'</p>'
   +   '<div class="grid" id="lista">'+(visible.length ? visible.map(card).join("") : '<p class="progress" style="grid-column:1/-1">Tudo desta seção já foi reservado. Que tal outra categoria ou as ideias aqui embaixo?</p>')+'</div>'
   + '</div></section>'
@@ -809,8 +825,9 @@ function showWhatsApp(id, nome){
   PEDIDOS[id] = {nome:nome, em:Date.now()}; savePedidos();
   render();
   openModal('<img class="cut mcut" src="'+IMG.cherry+'" alt=""><h4 class="script">Quase lá!</h4>'
-    + '<p>Envie esta mensagem aos anfitriões pelo WhatsApp. Assim que confirmarem, o presente aparecerá com o seu nome na lista.</p>'
+    + '<p>Toque no botão abaixo para enviar esta mensagem direto para o WhatsApp da Nádia. Assim que ela confirmar, o presente aparece com o seu nome na lista.</p>'
     + '<div class="msg-preview">'+esc(text)+'</div>'
+    + '<p class="addr-hint">Na hora de comprar, use este endereço de entrega:</p>'+ADDR_BOX()
     + '<div class="row"><a class="btn-wa" href="'+waLink(text)+'" target="_blank" rel="noopener" data-done>Enviar pelo WhatsApp</a>'
     + '<button class="btn-line" id="copyMsg">Copiar mensagem</button></div>');
   document.getElementById("copyMsg").onclick = function(){
@@ -856,6 +873,8 @@ document.addEventListener("click", function(ev){
     document.getElementById("doRelease").onclick = function(){ delete STATE.reservas[id]; closeModal(); render(); persist("Presente liberado"); };
   }
 });
+document.addEventListener("click", function(ev){ var b=ev.target.closest("[data-copyaddr]"); if(!b) return; var t=ADDRESS.replace(/\n/g," - ");
+  try { navigator.clipboard.writeText(t).then(function(){toast("Endereço copiado");}, function(){toast("Selecione o endereço para copiar");}); } catch(e){ toast("Selecione o endereço para copiar"); } });
 document.addEventListener("keydown", function(e){ if (e.key === "Escape") closeModal(); });
 document.addEventListener("submit", function(ev){
   if (ev.target.id !== "nameForm") return;
