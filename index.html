@@ -391,7 +391,7 @@ footer .collage .c5{width:200px;margin-left:-40px;z-index:2;transform:rotate(3de
 /* Número de WhatsApp que recebe os pedidos (55 + DDD + número, só dígitos). Vazio = a pessoa escolhe o contato. */
 var WHATSAPP = "5584933005495";
 /* ====== Reservas compartilhadas (planilha Google) ====== */
-var RESERVAS_URL = "";
+var RESERVAS_URL = "https://script.google.com/macros/s/AKfycbzfx0oIJCivOFKXVnU_o1uNpCGgcNQXSzin6ukLyAmW4pZRzok4vSn3Owv14ey9GFDhKA/exec";
 var SYNCED = false;
 function mergeRemote(r){ if(!r||typeof r!=="object") return; var out={}; Object.keys(r).forEach(function(k){ var v=r[k]; if(v&&v.nome) out[k]={nome:String(v.nome).slice(0,60)}; }); STATE.reservas=out; SYNCED=true; }
 function loadRemote(){
