@@ -377,6 +377,8 @@ footer .collage .c5{width:200px;margin-left:-40px;z-index:2;transform:rotate(3de
 .msg-preview{overflow-wrap:anywhere}
 .modal .addr{flex-wrap:wrap}.modal .addr-copy{width:100%;padding:7px}
 @media (max-width:520px){ .addr{flex-wrap:wrap}.addr-copy{width:100%;padding:8px} }
+.card .vignette .ribbon svg{width:13px!important;height:13px!important;max-width:none;margin:0;display:inline-block}
+.card.is-reserved .ribbon{background:var(--gold);color:#fff}
 </style>
 </head>
 <body>
@@ -388,6 +390,19 @@ footer .collage .c5{width:200px;margin-left:-40px;z-index:2;transform:rotate(3de
 
 /* Número de WhatsApp que recebe os pedidos (55 + DDD + número, só dígitos). Vazio = a pessoa escolhe o contato. */
 var WHATSAPP = "5584933005495";
+/* ====== Reservas compartilhadas (planilha Google) ====== */
+var RESERVAS_URL = "";
+var SYNCED = false;
+function mergeRemote(r){ if(!r||typeof r!=="object") return; var out={}; Object.keys(r).forEach(function(k){ var v=r[k]; if(v&&v.nome) out[k]={nome:String(v.nome).slice(0,60)}; }); STATE.reservas=out; SYNCED=true; }
+function loadRemote(){
+  if(!RESERVAS_URL) return;
+  fetch(RESERVAS_URL+(RESERVAS_URL.indexOf("?")<0?"?":"&")+"t="+Date.now()).then(function(r){ return r.json(); }).then(function(d){
+    if(d&&d.reservas){ var open=document.getElementById("overlay"); var busy=open&&open.classList.contains("open"); mergeRemote(d.reservas); if(!busy) render(); }
+  }).catch(function(){});
+}
+function saveRemote(id,nome){
+  return fetch(RESERVAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({id:id,nome:nome,presente:giftName(id)})}).then(function(r){ return r.json(); });
+}
 var ADDRESS = "Rua Vereador José Evaristo, 293\nCentro - Rio Grande do Norte (RN)\nCEP 59805-000";
 var ADDR_BOX = function(){ return '<div class="addr"><div class="addr-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg></div><div class="addr-txt"><div class="addr-lbl">Endereço para entrega</div><div class="addr-val">'+esc(ADDRESS).replace(/\n/g,"<br>")+'</div></div><button class="btn-sm addr-copy" data-copyaddr>Copiar endereço</button></div>'; };
 var ZOOM_URL = "https://www.zoom.com.br/";
@@ -775,7 +790,7 @@ function card(g){
   if (r){
     actions = '<div class="reserved-box"><div class="lbl">Reservado por</div><div class="who">'+esc(r.nome)+'</div></div>'
       + (CAN_SAVE ? '<button class="mini-admin" data-release="'+g.id+'">liberar este presente</button>' : '');
-  } else if (pedido && !CAN_SAVE){
+  } else if (pedido && !CAN_SAVE && !RESERVAS_URL){
     actions = '<div class="pending-box">Seu pedido de reserva foi enviado. Assim que confirmarmos, seu nome aparece aqui.</div>'
       + '<button class="mini-admin" data-reserve="'+g.id+'">enviar o pedido de novo</button>';
   } else {
@@ -795,7 +810,7 @@ function menuGroup(group){
     + group.items.map(function(n){
         var id = "i-"+slug(n), r = STATE.reservas[id], pedido = PEDIDOS[id], right;
         if (r) right = CAN_SAVE ? '<button class="btn-sm" data-release="'+id+'">liberar</button>' : '<span class="tag-ok">reservado</span>';
-        else if (pedido && !CAN_SAVE) right = '<span class="tag-ok" style="color:var(--blue)">pedido enviado</span>';
+        else if (pedido && !CAN_SAVE && !RESERVAS_URL) right = '<span class="tag-ok" style="color:var(--blue)">pedido enviado</span>';
         else right = '<a class="zoom" href="'+zoomSearch(n)+'" target="_blank" rel="noopener">preços</a><button class="btn-sm" data-reserve="'+id+'">reservar</button>';
         return '<div class="idea'+(r?' is-reserved':'')+'"><span class="nm">'+esc(n)+(r?'<small>'+esc(r.nome)+'</small>':'')+'</span><span class="dots"></span>'+right+'</div>';
       }).join("")
@@ -819,13 +834,16 @@ function askName(id){
 }
 function waLink(text){ return (WHATSAPP ? "https://wa.me/"+WHATSAPP : "https://wa.me/") + "?text=" + encodeURIComponent(text); }
 
-function showWhatsApp(id, nome){
+function showWhatsApp(id, nome, saved){
   var url = giftUrl(id);
-  var text = "Oi, Nádia e Robson!\nAqui é " + nome + ". Quero reservar este presente do Chá de Casa Nova:\n\n" + giftName(id) + (url ? "\n" + url : "") + "\n\nPodem deixar no meu nome na lista? Beijos!";
-  PEDIDOS[id] = {nome:nome, em:Date.now()}; savePedidos();
+  var text = saved
+    ? "Oi, Nádia e Robson!\nAqui é " + nome + ". Acabei de reservar este presente do Chá de Casa Nova:\n\n" + giftName(id) + (url ? "\n" + url : "") + "\n\nBeijos!"
+    : "Oi, Nádia e Robson!\nAqui é " + nome + ". Quero reservar este presente do Chá de Casa Nova:\n\n" + giftName(id) + (url ? "\n" + url : "") + "\n\nPodem deixar no meu nome na lista? Beijos!";
+  if(!saved){ PEDIDOS[id] = {nome:nome, em:Date.now()}; savePedidos(); }
   render();
-  openModal('<img class="cut mcut" src="'+IMG.cherry+'" alt=""><h4 class="script">Quase lá!</h4>'
-    + '<p>Toque no botão abaixo para enviar esta mensagem direto para o WhatsApp da Nádia. Assim que ela confirmar, o presente aparece com o seu nome na lista.</p>'
+  openModal('<img class="cut mcut" src="'+IMG.cherry+'" alt=""><h4 class="script">'+(saved?'Reservado!':'Quase lá!')+'</h4>'
+    + (saved ? '<p>Prontinho! O presente ficou no seu nome e já aparece como <b>reservado</b> para todo mundo. Agora é só avisar a Nádia pelo WhatsApp:</p>'
+             : '<p>Toque no botão abaixo para enviar esta mensagem direto para o WhatsApp da Nádia. Assim que ela confirmar, o presente aparece com o seu nome na lista.</p>')
     + '<div class="msg-preview">'+esc(text)+'</div>'
     + '<p class="addr-hint">Na hora de comprar, use este endereço de entrega:</p>'+ADDR_BOX()
     + '<div class="row"><a class="btn-wa" href="'+waLink(text)+'" target="_blank" rel="noopener" data-done>Enviar pelo WhatsApp</a>'
@@ -883,6 +901,16 @@ document.addEventListener("submit", function(ev){
   if (nome.length < 2){ document.getElementById("err").textContent = "Por gentileza, escreva o seu nome."; return; }
   var id = CURRENT;
   if (STATE.reservas[id]){ document.getElementById("err").textContent = "Este presente acabou de ser reservado."; return; }
+  if (RESERVAS_URL){
+    var btn=ev.target.querySelector('button[type=submit]'); btn.disabled=true; btn.textContent="Reservando...";
+    saveRemote(id,nome).then(function(d){
+      if(d&&d.reservas) mergeRemote(d.reservas);
+      if(d&&d.ok){ render(); showWhatsApp(id,nome,true); }
+      else if(d&&d.erro==="reservado"){ render(); askName(id); document.getElementById("err").textContent="Poxa, este presente acabou de ser reservado"+(d.nome?" por "+d.nome:"")+". Que tal escolher outro?"; }
+      else { btn.disabled=false; btn.textContent="Tentar de novo"; document.getElementById("err").textContent="Não deu para reservar agora. Tente de novo em instantes."; }
+    }).catch(function(){ showWhatsApp(id,nome); });
+    return;
+  }
   if (CAN_SAVE){
     STATE.reservas[id] = {nome:nome, em:new Date().toISOString().slice(0,10)};
     closeModal(); render(); persist("Reserva registrada para " + nome);
@@ -890,6 +918,7 @@ document.addEventListener("submit", function(ev){
 });
 
 render();
+loadRemote(); setInterval(loadRemote, 45000); document.addEventListener("visibilitychange", function(){ if(!document.hidden) loadRemote(); });
 if (window.claude && typeof window.claude.use === "function"){
   Promise.all([window.claude.use("artifact"), window.claude.use("user")]).then(function(res){
     ARTIFACT = res[0]; var user = res[1];
